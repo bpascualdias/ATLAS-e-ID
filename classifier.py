@@ -232,7 +232,10 @@ if args.n_folds > 1:
                               args.n_valid, input_data, args.n_tracks, args.valid_cuts, model, args.generator)
 else:
     print('Validation sample', args.n_valid, 'class predictions:')
-    if args.generator == 'ON': valid_probs = model.predict(valid_gen, verbose=args.verbose)
+    if args.generator == 'ON':
+        valid_gen = Batch_Generator(data_files, args.n_valid, input_data, args.n_tracks, args.n_classes,
+                                    valid_batch_size, args.valid_cuts, scaler, shuffle='OFF')
+        valid_probs = model.predict(valid_gen, verbose=args.verbose)
     else: valid_probs = model.predict(valid_sample, batch_size=valid_batch_size, verbose=args.verbose)
 bkg_rej = valid_results(valid_sample, valid_labels, valid_probs, train_labels, training,
                         args.output_dir, args.plotting, args.sep_bkg, args.runDiffPlots)
