@@ -782,7 +782,7 @@ def valid_results(sample, labels, probs, train_labels, training, output_dir, plo
     for job in processes: job.join()
     if plotting=='OFF':
         for bkg in bkg_list: print("".join(list(return_dict[bkg].values())))
-        return np.nan_to_num([int(return_dict[n][3].split()[-1]) for n in bkg_list]) # bkg_rej extraction
+        return np.nan_to_num([int(return_dict[n][1].split()[-1]) for n in bkg_list]) # bkg_rej extraction
     # DIFFERENTIAL PLOTS
     if plotting == 'ON' and diff_plots:
         eta_boundaries  = [-1.6, -0.8, 0, 0.8, 1.6]
