@@ -30,7 +30,8 @@ else
     if [[ -n "$NODE_DIR" ]]
     then
 	echo "COPYING DATA FILES TO LOCAL NODE"
-	cp -r /project/def-arguinj/shared/e-ID_data/{0.0-1.3,1.3-1.6,1.6-2.5} $NODE_DIR
+	# cp -r /project/def-arguinj/shared/e-ID_data/{0.0-1.3,1.3-1.6,1.6-2.5} $NODE_DIR
+    cp -r /project/def-arguinj/shared/e-ID\_data/2020-10-30/{0.0-1.3, 1.3-1.6, 1.6-2.5, 0.0-2.5} $NODE_DIR
     fi
     module load singularity/3.6
     SIF=/project/def-arguinj/shared/sing_images/tf-2.1.0-gpu-py3_sing-3.5.sif
