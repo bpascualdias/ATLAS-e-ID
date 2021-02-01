@@ -992,7 +992,7 @@ def feature_ranking(output_dir, results_out, scalars, images, eta_region, n_clas
             plt.axvline(1, color='r', ls=':')
 
             # Finish the plot
-            plot_title = f"Feature removal importance: {class_name[class_index]}\n {eta_region.split('-')[0]} < $\eta$ < {eta_region.split('-')[1]}, full background rejection at 70% = {data_dict['none'][class_index]}"
+            plot_title = f"Feature removal importance: {class_name[class_index]}\n {eta_region.split('-')[0]} < $\eta$ < {eta_region.split('-')[1]}, full background rejection at 90% = {data_dict['none'][class_index]}"
             # ax.legend(loc='lower right', prop={'size': 14})
             plt.title(plot_title, fontsize=18)
             ax.set_xlabel(r'$\frac{bkg\_rej\_full}{bkg\_rej}$', fontsize=18)
