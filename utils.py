@@ -739,7 +739,7 @@ def bkg_separation(sample, labels, probs, bkg):
     return {key:sample[key][cuts] for key in sample}, labels[cuts], probs[cuts]
 
 
-def print_performance(labels, probs, sig_eff=[90, 80, 70]):
+def print_performance(labels, probs, sig_eff=[70, 80, 90]):
     fpr, tpr, _ = metrics.roc_curve(labels, probs[:,0], pos_label=0)
     for val in sig_eff:
         print_dict[3] += 'BACKGROUND REJECTION AT '+str(val)+'%: '
@@ -776,7 +776,7 @@ def valid_results(sample, labels, probs, train_labels, training, output_dir, plo
     for job in processes: job.join()
     if plotting=='OFF':
         for bkg in bkg_list: print("".join(list(return_dict[bkg].values())))
-        return np.nan_to_num([int(return_dict[n][1].split()[-1]) for n in bkg_list]) # bkg_rej extraction
+        return np.nan_to_num([int(return_dict[n][3].split()[-1]) for n in bkg_list]) # bkg_rej extraction
     # DIFFERENTIAL PLOTS
     if plotting == 'ON' and diff_plots:
         eta_boundaries  = [-1.6, -0.8, 0, 0.8, 1.6]
