@@ -425,25 +425,19 @@ def make_sample(data_file, idx, input_data, n_tracks, n_classes, verbose='OFF', 
     return sample, labels
 
 
-def make_labels(sample, n_classes):
-    MC_type = sample['p_TruthType']; IFF_type = sample['p_iffTruth']
-    if   n_classes == 2:
-        labels = np.where(IFF_type <= 1                               , -1, IFF_type)
-        labels = np.where(IFF_type == 2                               ,  0, labels  )
-        return   np.where(IFF_type >= 3                               ,  1, labels  )
-    elif n_classes == 6:
-        labels = np.where(np.logical_or (IFF_type <= 1, IFF_type == 4), -1, IFF_type)
-        labels = np.where(np.logical_or (IFF_type == 6, IFF_type == 7), -1, labels  )
-        labels = np.where(IFF_type == 2                               ,  0, labels  )
-        labels = np.where(IFF_type == 3                               ,  1, labels  )
-        labels = np.where(IFF_type == 5                               ,  2, labels  )
-        labels = np.where(np.logical_or (IFF_type == 8, IFF_type == 9),  3, labels  )
-        labels = np.where(np.logical_and(IFF_type ==10,  MC_type == 4),  4, labels  )
-        labels = np.where(np.logical_and(IFF_type ==10,  MC_type ==16),  4, labels  )
-        labels = np.where(np.logical_and(IFF_type ==10,  MC_type ==17),  5, labels  )
-        return   np.where(  labels == 10                              , -1, labels  )
-    else: print('\nERROR:', n_classes, 'classes not supported -> exiting program\n'); sys.exit()
-
+def make_labels(sample, n_classes, match_to_vertex=False):
+    labels = np.full(sample['p_iffTruth'].shape, -1)
+    labels[(sample['p_iffTruth'] ==  2) & (sample['p_firstEgMotherPdgId']*sample['p_charge'] < 0)] = 0
+    labels[(sample['p_iffTruth'] ==  2) & (sample['p_firstEgMotherPdgId']*sample['p_charge'] > 0)] = 1
+    labels[ sample['p_iffTruth'] ==  3                                                           ] = 1
+    labels[ sample['p_iffTruth'] ==  5                                                           ] = 2
+    labels[(sample['p_iffTruth'] ==  8) | (sample['p_iffTruth' ] ==   9)                         ] = 3
+    labels[(sample['p_iffTruth'] == 10) & (sample['p_TruthType'] ==   4)                         ] = 4
+    labels[(sample['p_iffTruth'] == 10) & (sample['p_TruthType'] ==  16)                         ] = 4
+    labels[(sample['p_iffTruth'] == 10) & (sample['p_TruthType'] ==  17)                         ] = 5
+    if n_classes == 2: labels[labels >= 2] = 1
+    if match_to_vertex: labels[sample['p_vertexIndex'] == -999] = -1
+    return labels
 
 def batch_idx(data_files, batch_size, interval, weights=None, shuffle='OFF'):
     def return_idx(n_e, cum_batches, batch_size, index):
