@@ -1,9 +1,9 @@
 # FEATURE REMOVAL IMPORTANCE RANKING (array jobs)
-python classifier.py  --n_train=${SBATCH_VAR}e6 --n_eval=5e6  --n_valid=100e6 --batch_size=5e3 --n_epochs=100  \
+python classifier.py  --n_train=20e6 --n_eval=5e6  --n_valid=100e6 --batch_size=5e3 --n_epochs=100             \
                       --n_classes=6 --eta_region=0.0-2.5                                                       \
                       --weight_type=none --plotting=OFF --feature_removal=ON --sep_bkg=ON  --generator=ON      \
-                      --results_out=results.pkl   --output_dir=outputs_${SBATCH_VAR}e6/feature_removal         \
-                      --sbatch_var=0  --host_name=${HOST_NAME}   --node_dir=${NODE_DIR}
+                      --results_out=results.pkl   --output_dir=outputs/feature_removal                         \
+                      --sbatch_var=${SBATCH_VAR}  --host_name=${HOST_NAME}   --node_dir=${NODE_DIR}
 exit
 
 
