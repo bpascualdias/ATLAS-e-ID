@@ -909,7 +909,8 @@ def feature_removal(scalars, images, groups, index):
     return scalars, images, removed_feature
 
 
-def feature_ranking(output_dir, results_out, scalars, images, groups):
+def feature_ranking(output_dir, results_out, scalars, images, eta_region, n_classes):
+    ## Obtain dictionary with background rejection data
     data_dict = {}
     with open(results_out,'rb') as file_data:
         try:
@@ -917,11 +918,96 @@ def feature_ranking(output_dir, results_out, scalars, images, groups):
         except EOFError: pass
     try: pickle.dump(data_dict, open(results_out,'wb'))
     except IOError: print('FILE ACCESS CONFLICT IN FEATURE RANKING --> SKIPPING FILE ACCESS\n')
-    # SECTION TO MODIFY
-    #from importance import ranking_plot
-    #ranking_plot(data_dict, output_dir, 'put title here', images, scalars, groups)
+
     print('BACKGROUND REJECTION DICTIONARY:')
     for key in data_dict: print(format(key,'30s'), data_dict[key])
+
+    class_name = {0 : 'class 0 vs All', 1 : 'class 0 vs 1', 2 : 'class 0 vs 2', 3 : 'class 0 vs 3', 4 : 'class 0 vs 4', 5 : 'class 0 vs 5',}
+    colors = {'scalars' : 'tab:blue', 'images' : 'tab:orange', 'others' : 'tab:green'}
+
+    ## Prepare dictionary mapping features names to LaTeX format
+    LaTeX = {
+            'p_Eratio'                     : r'$E_{ratio}$',
+            'p_Reta'                       : r'$R_{\eta}$',
+            'p_Rhad'                       : r'$R_{had}$',
+            'p_Rphi'                       : r'$R_{\phi}$',
+            'p_TRTPID'                     : r'TRTPID',
+            'p_numberOfSCTHits'            : r'Nb of SCT hits',
+            'p_ndof'                       : 'ndof',
+            'p_dPOverP'                    : r'$\Delta p/p$',
+            'p_deltaEta1'                  : r'$\Delta \eta_1$',
+            'p_f1'                         : r'$f_1$',
+            'p_f3'                         : r'$f_3$',
+            'p_deltaPhiRescaled2'          : r'$\Delta \phi _{res}$',
+            'p_weta2'                      : r'$w_{\eta 2}$',
+            'p_d0'                         : r'$d_0$',
+            'p_d0Sig'                      : r'$d_0/{\sigma(d_0)}$',
+            'p_qd0Sig'                     : r'qd0Sig',
+            'p_nTracks'                    : r'$n_{Tracks}$',
+            'p_sct_weight_charge'          : r'sct wt charge',
+            'p_eta'                        : r'$\eta$',
+            'p_et_calo'                    : r'$p_t$',
+            'p_EptRatio'                   : r'$E/p_T$',
+            'p_EoverP'                     : r'$E/p$',
+            'p_wtots1'                     : r'$w_{stot}$',
+            'p_numberOfInnermostPixelHits' : r'$n_{Blayer}$'
+        }
+
+    ## Add features that don't have a Latex format as themselves
+    for feature in scalars+images:
+        if not feature in LaTeX:
+            LaTeX[feature] = feature
+
+    if 'none' in data_dict:
+        # Obtain the data and calculate the ratio
+        bkg_ratio = {}
+        for feature in data_dict:
+            if feature != 'none':
+                bkg_ratio[feature] = data_dict['none']/data_dict[feature]
+        # Plot the data
+        for class_index in class_name:
+            fig, ax = plt.subplots(figsize=(30/2.54, 20/2.54))
+            ax.invert_yaxis()
+
+            # Sort features in descending order of the ratio
+            sorted_features = [f[0] for f in sorted(bkg_ratio.items(), key = lambda item: item[1][class_index], reverse=True)]
+
+            # Plot each feature as a horizontal bar
+            for feature in sorted_features:
+                width = bkg_ratio[feature][class_index]
+                if feature in scalars:
+                    ax.barh(LaTeX[feature], width, height=0.8, capsize=5, color=colors['scalars'])
+                elif feature in images:
+                    ax.barh(LaTeX[feature], width, height=0.8, capsize=5, color=colors['images'])
+                else:
+                    ax.barh(feature, width, height=0.8, capsize=5, color=colors['others'])
+
+            # Write the ratio in the middle of the bar
+            for i in ax.patches:
+                plt.text(i.get_width()/2, i.get_y()+0.4, str(round(i.get_width(),3)), ha='center', va='center', color ='white')
+
+            # Red vertical line to highlight the threshold between good and bad variables:
+            # Above this line, variables are important; under it, they are detrimental.
+            plt.axvline(1, color='r', ls=':')
+
+            # Finish the plot
+            plot_title = f"Feature removal importance: {class_name[class_index]}\n {eta_region.split('-')[0]} < $\eta$ < {eta_region.split('-')[1]}, full background rejection at 90% = {data_dict['none'][class_index]}"
+            # ax.legend(loc='lower right', prop={'size': 14})
+            plt.title(plot_title, fontsize=18)
+            ax.set_xlabel(r'$\frac{bkg\_rej\_full}{bkg\_rej}$', fontsize=18)
+            ax.set_ylabel('Features', fontsize=18)
+            plt.tight_layout()
+
+            # Saving plot
+            save_dir = output_dir[0:output_dir.rfind('/')]
+            file_name = f"feature_ranking_{class_name[class_index].replace(' ', '_')}"
+            try: plt.savefig(f'{save_dir}/{file_name}.pdf')
+            except IOError:
+                time.sleep(10) # Wait 10s then try again
+                try: plt.savefig(f'{save_dir}/{file_name}.pdf')
+                except IOError: print('FILE WRITING CONFLICT IN FEATURE RANKING --> SKIPPING FILE WRITING\n')
+
+            # return fig, ax
 
 
 
