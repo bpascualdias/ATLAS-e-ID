@@ -72,5 +72,5 @@ def callback(model_out, patience, metrics):
     calls  = [callbacks.ModelCheckpoint(model_out, save_best_only=True, monitor=metrics, verbose=1)]
     calls += [callbacks.ReduceLROnPlateau(patience=3, factor=0.5, min_delta=1e-6, monitor=metrics, verbose=1)]
     calls += [callbacks.EarlyStopping(patience=patience, restore_best_weights=True,
-                                      min_delta=1e-5, monitor=metrics, verbose=1)]
+                                      min_delta=1e-4, monitor=metrics, verbose=1)]
     return calls + [callbacks.TerminateOnNaN()]
