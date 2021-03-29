@@ -249,7 +249,7 @@ if '.pkl' in args.results_out:
         args.results_out = args.output_dir[0:args.output_dir.rfind('/')]+'/'+args.results_out.split('/')[-1]
         try: pickle.dump({removed_feature:bkg_rej}, open(args.results_out,'ab'))
         except IOError: print('FILE ACCESS CONFLICT FOR', removed_feature, '--> SKIPPING FILE ACCESS\n')
-        feature_ranking(args.output_dir, args.results_out, scalars, images, args.eta_region, args.n_classes)
+        feature_ranking(args.output_dir, args.results_out, scalars, images, args.n_classes)
     else:
         if args.n_folds > 1 and False: valid_data = (valid_probs,)
         else: valid_data = ({key:valid_sample[key] for key in others+['eta','pt']}, valid_labels, valid_probs)

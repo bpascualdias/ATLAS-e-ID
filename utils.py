@@ -909,7 +909,7 @@ def feature_removal(scalars, images, groups, index):
     return scalars, images, removed_feature
 
 
-def feature_ranking(output_dir, results_out, scalars, images, eta_region, n_classes):
+def feature_ranking(output_dir, results_out, scalars, images, n_classes):
     ## Obtain dictionary with background rejection data
     data_dict = {}
     with open(results_out,'rb') as file_data:
@@ -919,11 +919,19 @@ def feature_ranking(output_dir, results_out, scalars, images, eta_region, n_clas
     try: pickle.dump(data_dict, open(results_out,'wb'))
     except IOError: print('FILE ACCESS CONFLICT IN FEATURE RANKING --> SKIPPING FILE ACCESS\n')
 
-    print('BACKGROUND REJECTION DICTIONARY:')
+    print('BACKGROUND REJECTION DICTIONARY (' + str(len(data_dict))+' entries):')
     for key in data_dict: print(format(key,'30s'), data_dict[key])
 
-    class_name = {0 : 'class 0 vs All', 1 : 'class 0 vs 1', 2 : 'class 0 vs 2', 3 : 'class 0 vs 3', 4 : 'class 0 vs 4', 5 : 'class 0 vs 5',}
-    colors = {'scalars' : 'tab:blue', 'images' : 'tab:orange', 'others' : 'tab:green'}
+    ## Define dictionaries to identify background classes and choose colors
+    classes = {
+        'class 0 vs All' : 'All',
+        'class 0 vs 1' : 'charge flip',
+        'class 0 vs 2' : 'photon conversion',
+        'class 0 vs 3' : 'b/c hadron',
+        'class 0 vs 4' : 'light flavor ($\gamma/e^{\pm}$)',
+        'class 0 vs 5' : 'light flavor (hadron)',
+    }
+    colors = {'scalars' : 'tab:blue', 'images' : 'tab:orange'}
 
     ## Prepare dictionary mapping features names to LaTeX format
     LaTeX = {
@@ -959,57 +967,150 @@ def feature_ranking(output_dir, results_out, scalars, images, eta_region, n_clas
             LaTeX[feature] = feature
 
     if 'none' in data_dict:
-        # Obtain the data and calculate the ratio
+        ## Obtain the bkg rejection data and calculate the ratio for each feature
         bkg_ratio = {}
+
+        ## Obtain the bkg ratio data for each feature
+        features_list = []
+        ratios_list = []
         for feature in data_dict:
             if feature != 'none':
-                bkg_ratio[feature] = data_dict['none']/data_dict[feature]
-        # Plot the data
-        for class_index in class_name:
-            fig, ax = plt.subplots(figsize=(30/2.54, 20/2.54))
-            ax.invert_yaxis()
+                features_list.append(feature)
+                ratios_list.append(data_dict['none']/data_dict[feature])
+        features = np.array([LaTeX[f] for f in features_list])
+        ratios = np.array(ratios_list)
 
-            # Sort features in descending order of the ratio
-            sorted_features = [f[0] for f in sorted(bkg_ratio.items(), key = lambda item: item[1][class_index], reverse=True)]
+        ## Assign the correct color to each feature
+        feature_color = {}
+        for feature in features_list:
+            if feature in scalars:
+                feature_color[LaTeX[feature]] = colors['scalars']
+            elif feature in images:
+                feature_color[LaTeX[feature]] = colors['images']
+            elif feature == removed_feature:
+                feature_color[LaTeX[feature]] = colors[removed_feature_type]
+            else:
+                feature_color[LaTeX[feature]] = 'black'
+        features_colors = [feature_color[LaTeX[f]] for f in features_list]
 
-            # Plot each feature as a horizontal bar
-            for feature in sorted_features:
-                width = bkg_ratio[feature][class_index]
-                if feature in scalars:
-                    ax.barh(LaTeX[feature], width, height=0.8, capsize=5, color=colors['scalars'])
-                elif feature in images:
-                    ax.barh(LaTeX[feature], width, height=0.8, capsize=5, color=colors['images'])
-                else:
-                    ax.barh(feature, width, height=0.8, capsize=5, color=colors['others'])
+        ###################################
+        ## Feature ranking combined plot ##
+        ###################################
 
-            # Write the ratio in the middle of the bar
-            for i in ax.patches:
-                plt.text(i.get_width()/2, i.get_y()+0.4, str(round(i.get_width(),3)), ha='center', va='center', color ='white')
+        ## Sort the data with the ranking of one of the background classes
+        ranking_idx = np.argsort(ratios[:, 0]) # Sort by ranking of class 0 vs All
+        ranking_features = features[ranking_idx]
+        ranking_ratios = ratios[ranking_idx]
+        ranking_features_colors = np.array(features_colors)[ranking_idx]
 
-            # Red vertical line to highlight the threshold between good and bad variables:
-            # Above this line, variables are important; under it, they are detrimental.
+        ## Define ratios limits (must be equal to all plots)
+        xmin, xmax = np.min(ratios)*0.5, 3*1.1
+
+        ## Start figure
+        ncols, nrows = 6, 1
+        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(14,9), sharey=True)
+
+        ## Initiate individual plots
+        for i, class_name in enumerate(classes):
+            if nrows == 1:
+                a = i
+            elif nrows == 2:
+                if i < ncols: a = 0, i
+                else: a = 1, i-ncols
+
+            ## Define widths and starting points of each feature's bar
+            widths = ranking_ratios[:, i] - 1 # difference of the ratio to 1
+            starts = np.ones(len(widths)) # start each bar at 1
+
+            ## Plot a background to better read the data across plots
+            background_color = ['#eaeaeaff', '#ffffffff']*int(len(widths)/2)
+            ax[a].barh(ranking_features, np.ones(len(widths))*xmax, left=np.ones(len(widths))*xmin, color=background_color, height=0.8)
+
+            ## Plot the ratios as one bar for each feature
+            ax[a].barh(ranking_features, widths, left=starts, color=ranking_features_colors, height=0.8)
+
+            ## Plot a dashed red line at ratio = 1
+            ax[a].axvline(1, color='red', ls=':')
+
+            ## Write the numerical value of the ratio
+            xcenters = np.zeros(len(widths)) + 0.8*np.min(ratios)
+            for y, (x, c) in enumerate(zip(xcenters, ranking_ratios[:,i])):
+                ax[a].text(x, y, f"{c:.2f}", fontsize='small', ha='center', va='center', color='gray')
+
+            ## Create label for the colors
+            labels = list(colors.keys())
+            handles = [plt.Rectangle((0,0),1,1, color=colors[label]) for label in labels]
+            ax[a].legend(handles, labels, loc='lower right')
+
+            ## Finish the plot
+            ax[a].set_xlim(xmin, xmax)
+            plot_title = f"{classes[class_name]}\n full_bkg_rej = {data_dict['none'][i]}"
+            ax[a].set_title(plot_title)
+            x_label = r'bkg_rej_full/bkg_rej'
+            if isinstance(a, int): ax[a].set_xlabel(x_label)
+            elif a[0] == nrows-1: ax[a].set_xlabel(x_label)
+
+        ## Finish the figure
+        fig_title = f"Feature removal importance ranking"
+        fig.suptitle(fig_title, fontsize=16)
+        fig.tight_layout()
+
+        ## Save the plot
+        save_dir = output_dir[0:output_dir.rfind('/')]
+        file_name = f"feature_ranking_combined"
+        try: fig.savefig(f'{save_dir}/{file_name}.pdf')
+        except IOError:
+                time.sleep(10) # Wait 10s then try again
+                try: plt.savefig(f'{save_dir}/{file_name}.pdf')
+                except IOError: print('FILE WRITING CONFLICT IN FEATURE RANKING --> SKIPPING FILE WRITING\n')
+
+        ######################################
+        ## Feature ranking individual plots ##
+        ######################################
+
+        for i, class_name in enumerate(classes):
+            ## Start figures
+            fig, ax = plt.subplots(figsize=(12, 8))
+
+            ## Sort the data with the ranking of the class
+            ranking_idx = np.argsort(ratios[:, i])
+            ranking_features = features[ranking_idx]
+            ranking_ratios = ratios[ranking_idx]
+            widths = ranking_ratios[:, i]
+            ranking_features_colors = np.array(features_colors)[ranking_idx]
+
+            ## Plot each feature as a horizontal bar
+            ax.barh(ranking_features, widths, color=ranking_features_colors, height=0.8, capsize=5)
+
+            ## Write the ratio in the middle of the bar
+            for k in ax.patches:
+                ax.text(k.get_width()/2, k.get_y()+0.4, str(round(k.get_width(),3)), fontsize='small', ha='center', va='center', color ='white')
+
+            ## Plot a red vertical line to highlight the threshold between good and bad variables.
+            ## Above this line, variables are important; under it, they are detrimental.
             plt.axvline(1, color='r', ls=':')
 
-            # Finish the plot
-            plot_title = f"Feature removal importance: {class_name[class_index]}\n {eta_region.split('-')[0]} < $\eta$ < {eta_region.split('-')[1]}, full background rejection at 90% = {data_dict['none'][class_index]}"
-            # ax.legend(loc='lower right', prop={'size': 14})
-            plt.title(plot_title, fontsize=18)
-            ax.set_xlabel(r'$\frac{bkg\_rej\_full}{bkg\_rej}$', fontsize=18)
-            ax.set_ylabel('Features', fontsize=18)
-            plt.tight_layout()
+            ## Create a label for the colors
+            labels = list(colors.keys())
+            handles = [plt.Rectangle((0,0),1,1, color=colors[label]) for label in labels]
+            ax.legend(handles, labels)
 
-            # Saving plot
+            ## Finish plot
+            plot_title = f"Feature removal importance ranking: {class_name}\n full background rejection = {data_dict['none'][i]}"
+            # ax.legend(loc='lower right', prop={'size': 14})
+            fig.suptitle(plot_title, fontsize=18)
+            ax.set_xlabel(r'$\frac{bkg\_rej\_full}{bkg\_rej}$', fontsize=16)
+            ax.set_ylabel('Features', fontsize=16)
+            fig.tight_layout()
+
+            ## Saving plot
             save_dir = output_dir[0:output_dir.rfind('/')]
-            file_name = f"feature_ranking_{class_name[class_index].replace(' ', '_')}"
+            file_name = f"feature_ranking_{class_name.replace(' ', '_')}"
             try: plt.savefig(f'{save_dir}/{file_name}.pdf')
             except IOError:
                 time.sleep(10) # Wait 10s then try again
                 try: plt.savefig(f'{save_dir}/{file_name}.pdf')
                 except IOError: print('FILE WRITING CONFLICT IN FEATURE RANKING --> SKIPPING FILE WRITING\n')
-
-            # return fig, ax
-
-
 
 
 #################################################################################
