@@ -892,11 +892,13 @@ def sample_analysis(sample, labels, scalars, scaler_file, output_dir):
 
 
 def feature_removal(scalars, images, groups, index):
-    if   index <= 0: return scalars, images, 'none'
+    if   index <= 0: return scalars, images, 'none', 'none'
     elif index  > len(scalars+images+groups): sys.exit()
     elif index <= len(scalars+images):
         #removed_feature = (scalars+images)[index-1]
         removed_feature = dict(zip(np.arange(1, len(scalars+images)+1), scalars+images))[index]
+        feature_types = {'scalars' : scalars, 'images' : images, 'groups' : groups}
+        removed_feature_type = [t for t in feature_types if removed_feature in feature_types[t]][0]
         scalars_list    = list(set(scalars) - set([removed_feature]))
         images_list     = list(set(images ) - set([removed_feature]))
     elif index  > len(scalars+images):
@@ -906,10 +908,10 @@ def feature_removal(scalars, images, groups, index):
         removed_feature = 'group_'+str(index-len(scalars+images))
     scalars = [scalar for scalar in scalars if scalar in scalars_list]
     images  = [ image for  image in  images if  image in  images_list]
-    return scalars, images, removed_feature
+    return scalars, images, removed_feature, removed_feature_type
 
 
-def feature_ranking(output_dir, results_out, scalars, images, n_classes):
+def feature_ranking(output_dir, results_out, scalars, images, removed_feature, removed_feature_type, n_classes):
     ## Obtain dictionary with background rejection data
     data_dict = {}
     with open(results_out,'rb') as file_data:
@@ -938,6 +940,7 @@ def feature_ranking(output_dir, results_out, scalars, images, n_classes):
             'p_Eratio'                     : r'$E_{ratio}$',
             'p_Reta'                       : r'$R_{\eta}$',
             'p_Rhad'                       : r'$R_{had}$',
+            'p_Rhad1'                      : r'$R_{had(1)}$',
             'p_Rphi'                       : r'$R_{\phi}$',
             'p_TRTPID'                     : r'TRTPID',
             'p_numberOfSCTHits'            : r'Nb of SCT hits',
@@ -958,11 +961,12 @@ def feature_ranking(output_dir, results_out, scalars, images, n_classes):
             'p_EptRatio'                   : r'$E/p_T$',
             'p_EoverP'                     : r'$E/p$',
             'p_wtots1'                     : r'$w_{stot}$',
-            'p_numberOfInnermostPixelHits' : r'$n_{Blayer}$'
+            'p_numberOfInnermostPixelHits' : r'$n_{Blayer}$',
+            'p_numberOfPixelHits'          : r'$n_{Pixel}$'
         }
 
     ## Add features that don't have a Latex format as themselves
-    for feature in scalars+images:
+    for feature in scalars+images+[removed_feature]:
         if not feature in LaTeX:
             LaTeX[feature] = feature
 
