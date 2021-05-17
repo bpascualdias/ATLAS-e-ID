@@ -732,7 +732,7 @@ def bkg_separation(sample, labels, probs, bkg):
     return {key:sample[key][cuts] for key in sample}, labels[cuts], probs[cuts]
 
 
-def print_performance(labels, probs, sig_eff=[90, 80, 70]):
+def print_performance(labels, probs, sig_eff=[70, 80, 90]):
     fpr, tpr, _ = metrics.roc_curve(labels, probs[:,0], pos_label=0)
     for val in sig_eff:
         print_dict[3] += 'BACKGROUND REJECTION AT '+str(val)+'%: '
@@ -970,7 +970,7 @@ def feature_ranking(output_dir, results_out, scalars, images, removed_feature, r
         if not feature in LaTeX:
             LaTeX[feature] = feature
 
-    if 'none' in data_dict:
+    if 'none' in data_dict and len(data_dict) > 1:
         ## Obtain the bkg rejection data and calculate the ratio for each feature
         bkg_ratio = {}
 
