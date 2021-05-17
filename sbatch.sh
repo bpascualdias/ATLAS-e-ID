@@ -4,7 +4,7 @@
 # SLURM OPTIONS (LPS or BELUGA)
 #---------------------------------------------------------------------
 #SBATCH --account=def-arguinj
-#SBATCH --time=01-00:00         #time limit (DD-HH:MM)
+#SBATCH --time=06-00:00         #time limit (DD-HH:MM)
 #SBATCH --nodes=1               #number of nodes
 #SBATCH --mem=64G               #memory per node (on Beluga)
 #SBATCH --cpus-per-task=4       #number of CPU threads per node
@@ -36,7 +36,8 @@ else
     if [[ -n "$NODE_DIR" ]]
     then
 	echo "COPYING DATA FILES TO LOCAL NODE"
-	cp -r /project/def-arguinj/shared/e-ID_data/2020-10-30/{0.0-1.3,1.3-1.6,1.6-2.5,0.0-2.5} $NODE_DIR
+
+	cp -r /project/def-arguinj/shared/e-ID_data/{0.0-1.3,1.3-1.6,1.6-2.5,0.0-2.5} $NODE_DIR
     fi
     module load singularity/3.6
     PATHS=/project/def-arguinj,$NODE_DIR
