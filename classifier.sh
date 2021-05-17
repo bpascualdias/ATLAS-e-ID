@@ -1,10 +1,20 @@
-# FEATURE REMOVAL IMPORTANCE RANKING (array jobs)
-python classifier.py  --n_train=13275418 --n_valid=13275418 --batch_size=5e3 --n_epochs=100 --n_classes=2      \
-                      --weight_type=none --plotting=OFF --feature_removal=ON --sep_bkg=ON  --generator=ON      \
+if [[ $FEATURE_RANKING_TRAINING = true ]]
+then
+# FEATURE REMOVAL IMPORTANCE RANKING - TRAINING (array jobs)
+python classifier.py  --n_train=20e6 --n_eval=10e6 --n_valid=100e6 --batch_size=5e3 --n_epochs=100             \
+                      --n_classes=6  --eta_region=0.0-2.5 --weight_type=match2class --bkg_ratio=4              \
+                      --feature_removal=ON --sep_bkg=ON  --generator=ON                                        \
                       --results_out=results.pkl   --output_dir=outputs/feature_removal                         \
                       --sbatch_var=${SBATCH_VAR}  --host_name=${HOST_NAME}   --node_dir=${NODE_DIR}
+else
+# FEATURE REMOVAL IMPORTANCE RANKING - ONLY VALIDATION (array jobs)
+python classifier.py  --n_train=20e6 --n_eval=10e6 --n_valid=100e6 --batch_size=5e3 --n_epochs=0                   \
+                      --n_classes=6  --eta_region=0.0-2.5 --weight_type=match2class --bkg_ratio=4                  \
+                      --feature_removal=ON --sep_bkg=ON  --generator=ON --model_in=model.h5 --scaler_in=scaler.pkl \
+                      --results_out=results.pkl   --output_dir=outputs/feature_removal                             \
+                      --sbatch_var=${SBATCH_VAR}  --host_name=${HOST_NAME}   --node_dir=${NODE_DIR}
+fi
 exit
-
 
 
 

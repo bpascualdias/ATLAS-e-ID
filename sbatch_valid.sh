@@ -4,9 +4,9 @@
 # SLURM OPTIONS (LPS or BELUGA)
 #---------------------------------------------------------------------
 #SBATCH --account=def-arguinj
-#SBATCH --time=06-00:00         #time limit (DD-HH:MM)
+#SBATCH --time=00-06:00         #time limit (DD-HH:MM)
 #SBATCH --nodes=1               #number of nodes
-#SBATCH --mem=64G               #memory per node (on Beluga)
+#SBATCH --mem=128G               #memory per node (on Beluga)
 #SBATCH --cpus-per-task=4       #number of CPU threads per node
 #SBATCH --gres=gpu:2            #number of GPU(s) per node
 #SBATCH --job-name=e-ID
@@ -18,6 +18,8 @@ export SBATCH_VAR=$SLURM_ARRAY_TASK_ID
 export HOST_NAME=$SLURM_SUBMIT_HOST
 export NODE_DIR=$SLURM_TMPDIR
 export SCRIPT_VAR
+
+export FEATURE_RANKING_TRAINING=false
 
 if [[ $HOST_NAME == *atlas* ]]
 then
@@ -36,11 +38,10 @@ else
     if [[ -n "$NODE_DIR" ]]
     then
 	echo "COPYING DATA FILES TO LOCAL NODE"
-
-	cp -r /project/def-arguinj/shared/e-ID_data/{0.0-1.3,1.3-1.6,1.6-2.5,0.0-2.5} $NODE_DIR
+	cp -r /project/def-arguinj/shared/e-ID_data/2020-10-30/{0.0-1.3,1.3-1.6,1.6-2.5,0.0-2.5} $NODE_DIR
     fi
     module load singularity/3.6
     PATHS=/project/def-arguinj,$NODE_DIR
     SIF=/project/def-arguinj/shared/sing_images/tf-2.1.0-gpu-py3_sing-3.5.sif
-    singularity shell --nv --bind $PATHS $SIF < classifier.sh $SBATCH_VAR $HOST_NAME $NODE_DIR
+    singularity shell --nv --bind $PATHS $SIF < classifier.sh $SBATCH_VAR $HOST_NAME $NODE_DIR $FEATURE_RANKING_TRAINING
 fi
